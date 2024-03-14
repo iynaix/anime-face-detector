@@ -35,12 +35,13 @@ def detect_faces(detector, face_score_threshold, img_path) -> list[Face]:
         if score < face_score_threshold:
             continue
 
+        # produces negative values sometimes?
         faces.append(
             {
-                "xmin": int(face[0]),
-                "ymin": int(face[1]),
-                "xmax": int(face[2]),
-                "ymax": int(face[3]),
+                "xmin": max(0, int(face[0])),
+                "ymin": max(0, int(face[1])),
+                "xmax": max(0, int(face[2])),
+                "ymax": max(0, int(face[3])),
             }
         )
     return faces
