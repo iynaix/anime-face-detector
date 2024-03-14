@@ -18,13 +18,41 @@ class Face(TypedDict):
     ymax: int
 
 
+def detect_faces(detector, face_score_threshold, img_path) -> list[Face]:
+    # create the detector
+    detector = anime_face_detector.create_detector(
+        # faster-rcnn is also available
+        face_detector_name=detector,
+        # "cuda:0" is also available, but takes forever to build
+        device="cpu",
+    )
+
+    img = cv2.imread(str(img_path))
+    faces = []
+    for pred in detector(img):
+        face = pred["bbox"]
+        score = face[4]
+        if score < face_score_threshold:
+            continue
+
+        faces.append(
+            {
+                "xmin": int(face[0]),
+                "ymin": int(face[1]),
+                "xmax": int(face[2]),
+                "ymax": int(face[3]),
+            }
+        )
+    return faces
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--detector",
         type=str,
-        default="yolov3",
-        choices=["yolov3", "faster-rcnn"],
+        default="best",
+        choices=["best", "yolov3", "faster-rcnn"],
         help="choose the detector to use (default: %(default)s)",
     )
     parser.add_argument(
@@ -41,33 +69,17 @@ def main():
     )
     args = parser.parse_args()
 
-    # create the detector
-    detector = anime_face_detector.create_detector(
-        # faster-rcnn is also available
-        face_detector_name=args.detector,
-        # "cuda:0" is also available, but takes forever to build
-        device="cpu",
-    )
+    faces = []
+    for img in args.images:
+        if args.detector == "best":
+            yolov3_faces = detect_faces("yolov3", args.face_score_threshold, img)
+            rcnn_faces = detect_faces("faster-rcnn", args.face_score_threshold, img)
 
-    for img_path in args.images:
-        img = cv2.imread(str(img_path))
-        faces = []
-        for pred in detector(img):
-            face = pred["bbox"]
-            score = face[4]
-            if score < args.face_score_threshold:
-                continue
+            faces = rcnn_faces if len(rcnn_faces) > len(yolov3_faces) else yolov3_faces
+        else:
+            faces = detect_faces(args.detector, args.face_score_threshold, img)
 
-            faces.append(
-                {
-                    "xmin": int(face[0]),
-                    "ymin": int(face[1]),
-                    "xmax": int(face[2]),
-                    "ymax": int(face[3]),
-                }
-            )
-
-        print(json.dumps({img_path: faces}))
+        print(json.dumps({img: faces}))
 
 
 if __name__ == "__main__":
