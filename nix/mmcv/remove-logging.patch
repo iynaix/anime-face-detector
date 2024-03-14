@@ -1,0 +1,13 @@
+diff --git a/mmcv/runner/checkpoint.py b/mmcv/runner/checkpoint.py
+index 9dd2d311..4dff84a6 100644
+--- a/mmcv/runner/checkpoint.py
++++ b/mmcv/runner/checkpoint.py
+@@ -309,8 +309,6 @@ class CheckpointLoader:
+ 
+         checkpoint_loader = cls._get_checkpoint_loader(filename)
+         class_name = checkpoint_loader.__name__  # type: ignore
+-        mmcv.print_log(
+-            f'load checkpoint from {class_name[10:]} path: {filename}', logger)
+         return checkpoint_loader(filename, map_location)  # type: ignore
+ 
+ 
