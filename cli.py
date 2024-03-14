@@ -18,7 +18,7 @@ class Face(TypedDict):
     ymax: int
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--detector",
@@ -68,3 +68,7 @@ if __name__ == "__main__":
             )
 
         print(json.dumps({img_path: faces}))
+
+
+if __name__ == "__main__":
+    main()

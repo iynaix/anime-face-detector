@@ -58,7 +58,13 @@
             };
           };
 
-          packages = { };
+          packages = rec {
+            default = pkgs.callPackage ./package.nix {
+              mmcv = mmcv-patched;
+              inherit mmdet mmpose;
+            };
+            anime-face-detector = default;
+          };
         };
     };
 }
