@@ -4,6 +4,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/5a623156afb531ba64c69363776bb2b2fe55e46b";
     systems.url = "github:nix-systems/default";
     devenv.url = "github:cachix/devenv";
+    nix2container.url = "github:nlewo/nix2container";
   };
   outputs =
     inputs@{ flake-parts, nixpkgs, ... }:
