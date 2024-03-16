@@ -50,8 +50,8 @@ options:
 ### Sample Output
 ```console
 $ anime-face-detector ~/Pictures/Wallpapers/image1.png ~/Pictures/Wallpapers/image2.png
-{"/home/iynaix/Pictures/Wallpapers/image1.png": [{"xmin": 1514, "ymin": 559, "xmax": 1900, "ymax": 930}]}
-{"/home/iynaix/Pictures/Wallpapers/image2.png": [{"xmin": 1388, "ymin": 1142, "xmax": 1874, "ymax": 1631}]}
+[{"xmin": 1514, "ymin": 559, "xmax": 1900, "ymax": 930}]
+[{"xmin": 1388, "ymin": 1142, "xmax": 1874, "ymax": 1631}]
 ```
 
 ## Hacking

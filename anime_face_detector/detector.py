@@ -103,28 +103,15 @@ class LandmarkDetector:
             return_heatmap=False)
         return preds
 
-    @staticmethod
-    def _load_image(
-            image_or_path: Union[np.ndarray, str, pathlib.Path]) -> np.ndarray:
-        if isinstance(image_or_path, np.ndarray):
-            image = image_or_path
-        elif isinstance(image_or_path, str):
-            image = cv2.imread(image_or_path)
-        elif isinstance(image_or_path, pathlib.Path):
-            image = cv2.imread(image_or_path.as_posix())
-        else:
-            raise ValueError
-        return image
-
     def __call__(
         self,
-        image_or_path: Union[np.ndarray, str, pathlib.Path],
+        path: str,
         boxes: Optional[list[np.ndarray]] = None
     ) -> list[dict[str, np.ndarray]]:
         """Detect face landmarks.
 
         Args:
-            image_or_path: An image with BGR channel order or an image path.
+            path: An image path.
             boxes: A list of bounding boxes for faces. Each bounding box
                 should be of the form [x0, y0, x1, y1, [score]].
 
@@ -132,7 +119,7 @@ class LandmarkDetector:
             bounding box of the form [x0, y0, x1, y1, [score]], and landmarks
             of the form [x, y, score].
         """
-        image = self._load_image(image_or_path)
+        image = cv2.imread(path)
         if boxes is None:
             if self.face_detector is not None:
                 boxes = self._detect_faces(image)

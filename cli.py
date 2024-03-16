@@ -18,7 +18,7 @@ class Face(TypedDict):
     ymax: int
 
 
-def detect_faces(detector, face_score_threshold, img_path) -> list[Face]:
+def detect_faces(detector, face_score_threshold: float, img: str) -> list[Face]:
     # create the detector
     detector = anime_face_detector.create_detector(
         # faster-rcnn is also available
@@ -27,7 +27,6 @@ def detect_faces(detector, face_score_threshold, img_path) -> list[Face]:
         device="cpu",
     )
 
-    img = cv2.imread(str(img_path))
     faces = []
     for pred in detector(img):
         face = pred["bbox"]
@@ -80,7 +79,7 @@ def main():
         else:
             faces = detect_faces(args.detector, args.face_score_threshold, img)
 
-        print(json.dumps({img: faces}))
+        print(json.dumps(faces))
 
 
 if __name__ == "__main__":
