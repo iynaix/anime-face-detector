@@ -41,6 +41,10 @@
             # https://devenv.sh/reference/options/
             dotenv.disableHint = true;
 
+            env = {
+              MODEL_PATH = toString (pkgs.callPackage ./nix/anime-face-models { });
+            };
+
             # python
             languages.python = {
               enable = true;
@@ -61,10 +65,12 @@
 
           packages = rec {
             default = pkgs.callPackage ./package.nix {
-              mmcv = mmcv-patched;
               inherit mmdet mmpose;
+              mmcv = mmcv-patched;
+              anime-face-models = pkgs.callPackage ./nix/anime-face-models { };
             };
             anime-face-detector = default;
+            anime-face-models = pkgs.callPackage ./nix/anime-face-models { };
           };
         };
     };

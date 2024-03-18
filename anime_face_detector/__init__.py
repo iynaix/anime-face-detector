@@ -1,6 +1,5 @@
 import pathlib
-
-import torch
+import os
 
 from .detector import LandmarkDetector
 
@@ -23,14 +22,7 @@ def get_checkpoint_path(model_name: str) -> pathlib.Path:
     else:
         file_name = f'mmpose_anime-face_{model_name}.pth'
 
-    model_dir = pathlib.Path(torch.hub.get_dir()) / 'checkpoints'
-    model_dir.mkdir(exist_ok=True, parents=True)
-    model_path = model_dir / file_name
-    if not model_path.exists():
-        url = f'https://github.com/hysts/anime-face-detector/releases/download/v0.0.1/{file_name}'
-        torch.hub.download_url_to_file(url, model_path.as_posix())
-
-    return model_path
+    return pathlib.Path(os.environ.get("MODEL_PATH")) / file_name
 
 
 def create_detector(face_detector_name: str = 'yolov3',
