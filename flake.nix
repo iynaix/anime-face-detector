@@ -35,15 +35,6 @@
           );
         in
         {
-          # this sets `pkgs` to a nixpkgs with allowUnfree option set.
-          _module.args.pkgs = import nixpkgs {
-            inherit system;
-            config = {
-              allowUnfree = true;
-              cudaSupport = true;
-            };
-          };
-
           # Per-system attributes can be defined here. The self' and inputs'
           # module parameters provide easy access to attributes of the same
           # system.
@@ -96,22 +87,32 @@
               cuda = mkDevenvWithCuda true;
             };
 
-          packages = rec {
-            default = pkgs.callPackage ./package.nix {
-              inherit mmdet mmpose;
-              mmcv = mmcv-patched;
-              anime-face-models = pkgs.callPackage ./nix/anime-face-models { };
+          packages =
+            let
+              pkgsCuda = import nixpkgs {
+                inherit system;
+                config = {
+                  allowUnfree = true;
+                  cudaSupport = true;
+                };
+              };
+            in
+            rec {
+              default = pkgs.callPackage ./package.nix {
+                inherit mmdet mmpose;
+                mmcv = mmcv-patched;
+                anime-face-models = pkgs.callPackage ./nix/anime-face-models { };
+              };
+              anime-face-detector = default;
+              # gpu support via cuda
+              with-cuda = pkgsCuda.callPackage ./package.nix {
+                inherit mmdet mmpose;
+                mmcv = mmcv-patched;
+                anime-face-models = pkgs.callPackage ./nix/anime-face-models { };
+                cudaSupport = true;
+              };
+              anime-face-detector-cuda = with-cuda;
             };
-            anime-face-detector = default;
-            # gpu support via cuda
-            with-cuda = pkgs.callPackage ./package.nix {
-              inherit mmdet mmpose;
-              mmcv = mmcv-patched;
-              anime-face-models = pkgs.callPackage ./nix/anime-face-models { };
-              cudaSupport = true;
-            };
-            anime-face-detector-cuda = with-cuda;
-          };
         };
     };
 }
