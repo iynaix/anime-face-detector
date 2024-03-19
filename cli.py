@@ -1,6 +1,6 @@
 import argparse
-import cv2
 import json
+import os
 import warnings
 from typing import TypedDict
 
@@ -11,7 +11,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 import anime_face_detector  # noqa: E402
 
 
-GPU_SUPPORT = False
+CUDA_SUPPORT = os.environ.get("CUDA_SUPPORT")
 
 
 class Face(TypedDict):
@@ -19,10 +19,16 @@ class Face(TypedDict):
     ymin: int
     xmax: int
     ymax: int
+    landmarks: list[tuple[int, int]]
 
 
 def detect_faces(
-    detector, img: str, *, face_score_threshold: float, device: str
+    detector,
+    img: str,
+    *,
+    device: str,
+    face_score_threshold: float,
+    landmark_score_threshold: float
 ) -> list[Face]:
     # create the detector
     detector = anime_face_detector.create_detector(
@@ -39,6 +45,10 @@ def detect_faces(
         if score < face_score_threshold:
             continue
 
+        landmarks = []
+        for *pt, score in pred["keypoints"]:
+            if score >= landmark_score_threshold:
+                landmarks.append((int(pt[0]), int(pt[1])))
         # produces negative values sometimes?
         faces.append(
             {
@@ -46,8 +56,10 @@ def detect_faces(
                 "ymin": max(0, int(face[1])),
                 "xmax": max(0, int(face[2])),
                 "ymax": max(0, int(face[3])),
+                "landmarks": landmarks,
             }
         )
+
     return faces
 
 
@@ -67,21 +79,34 @@ def main():
         help="set the face score threshold (default: %(default)s)",
     )
     parser.add_argument(
+        "--landmark-score-threshold",
+        type=float,
+        default=0.3,
+        help="set the landmark score threshold (default: %(default)s)",
+    )
+    parser.add_argument(
         "images",
         nargs="+",
         metavar="IMAGES",
         help="List of images to process",
     )
-    if GPU_SUPPORT:
-        parser.add_argument("--device", type=str, default="gpu", choices=["gpu", "cpu"])
+    if CUDA_SUPPORT:
+        parser.add_argument(
+            "--device",
+            type=str,
+            default="gpu",
+            choices=["gpu", "cpu"],
+            help="set the default device (default: %(default)s)",
+        )
     args = parser.parse_args()
 
-    faces = []
     detector_kwargs = {
         "face_score_threshold": args.face_score_threshold,
-        "device": args.device if GPU_SUPPORT else "cpu",
+        "landmark_score_threshold": args.landmark_score_threshold,
+        "device": args.device if CUDA_SUPPORT else "cpu",
     }
     for img in args.images:
+        faces = {}
         if args.detector == "best":
             yolov3_faces = detect_faces(
                 "yolov3",
@@ -98,7 +123,7 @@ def main():
         else:
             faces = detect_faces(args.detector, img, **detector_kwargs)
 
-        print(json.dumps(faces))
+        print(json.dumps(faces, separators=(",", ":")))
 
 
 if __name__ == "__main__":
