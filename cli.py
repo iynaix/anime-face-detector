@@ -11,6 +11,9 @@ warnings.filterwarnings("ignore", category=UserWarning)
 import anime_face_detector  # noqa: E402
 
 
+GPU_SUPPORT = False
+
+
 class Face(TypedDict):
     xmin: int
     ymin: int
@@ -18,13 +21,15 @@ class Face(TypedDict):
     ymax: int
 
 
-def detect_faces(detector, face_score_threshold: float, img: str) -> list[Face]:
+def detect_faces(
+    detector, img: str, *, face_score_threshold: float, device: str
+) -> list[Face]:
     # create the detector
     detector = anime_face_detector.create_detector(
         # faster-rcnn is also available
         face_detector_name=detector,
         # "cuda:0" is also available, but takes forever to build
-        device="cpu",
+        device="cuda:0" if device == "gpu" else "cpu",
     )
 
     faces = []
@@ -67,17 +72,31 @@ def main():
         metavar="IMAGES",
         help="List of images to process",
     )
+    if GPU_SUPPORT:
+        parser.add_argument("--device", type=str, default="gpu", choices=["gpu", "cpu"])
     args = parser.parse_args()
 
     faces = []
+    detector_kwargs = {
+        "face_score_threshold": args.face_score_threshold,
+        "device": args.device if GPU_SUPPORT else "cpu",
+    }
     for img in args.images:
         if args.detector == "best":
-            yolov3_faces = detect_faces("yolov3", args.face_score_threshold, img)
-            rcnn_faces = detect_faces("faster-rcnn", args.face_score_threshold, img)
+            yolov3_faces = detect_faces(
+                "yolov3",
+                img,
+                **detector_kwargs,
+            )
+            rcnn_faces = detect_faces(
+                "faster-rcnn",
+                img,
+                **detector_kwargs,
+            )
 
             faces = rcnn_faces if len(rcnn_faces) > len(yolov3_faces) else yolov3_faces
         else:
-            faces = detect_faces(args.detector, args.face_score_threshold, img)
+            faces = detect_faces(args.detector, img, **detector_kwargs)
 
         print(json.dumps(faces))
 
