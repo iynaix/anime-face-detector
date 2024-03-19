@@ -1,11 +1,11 @@
 # anime-face-detector
 
-anime-face-detector is a simple cli interface to hyst's [anime-face-detector](https://github.com/hysts/anime-face-detector)
+anime-face-detector is a simple cli interface to [hyst's anime-face-detector](https://github.com/hysts/anime-face-detector)
 
 ## Why
 [anime-face-detector](https://github.com/hysts/anime-face-detector) has not been updated in some time, and major new releases of `mmcv`, `mmdet` and `mmpose` have caused breaking changes.
 
-This project serves to provide a working version of all the dependencies required to reproducibly build `anime-face-detector` via **nix** and provide a cli interface that can be utilized with other programming languages.
+This project serves to provide a working version of all the dependencies required to reproducibly build `anime-face-detector` via **nix flakes** and provide a cli interface that can be utilized by other programming languages.
 
 Unfortunately, I do not have enough knowledge of machine learning to figure out how to port the project to the new `mmcv` version. If you do, please [submit a PR](https://github.com/hysts/anime-face-detector/pulls), it will be very much appreciated! 🙏
 
