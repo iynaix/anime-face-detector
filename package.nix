@@ -33,5 +33,6 @@ python3Packages.buildPythonApplication {
     homepage = "https://github.com/iynaix/anime-face-detector";
     license = with licenses; [ mit ];
     maintainers = with maintainers; [ iynaix ];
+    mainProgram = "anime-face-detector";
   };
 }
