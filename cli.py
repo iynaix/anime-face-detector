@@ -123,7 +123,7 @@ def main():
         else:
             faces = detect_faces(args.detector, img, **detector_kwargs)
 
-        print(json.dumps(faces, separators=(",", ":")))
+        print(json.dumps(faces, separators=(",", ":")), flush=True)
 
 
 if __name__ == "__main__":

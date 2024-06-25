@@ -62,22 +62,18 @@
                         MODEL_PATH = toString (pkgs.callPackage ./nix/anime-face-models { });
                       };
 
+                      packages = with pkgs.python3Packages; [
+                        mmcv-patched
+                        mmdet
+                        mmpose
+                        numpy
+                        pillow
+                        flake8
+                        black
+                      ];
+
                       # python
-                      languages.python = {
-                        enable = true;
-                        # provide hard to compile packages to pip
-                        package = pkgs.python3.withPackages (
-                          ps: with ps; [
-                            mmcv-patched
-                            mmdet
-                            mmpose
-                            numpy
-                            pillow
-                            flake8
-                            black
-                          ]
-                        );
-                      };
+                      languages.python.enable = true;
                     }
                   ];
                 };
