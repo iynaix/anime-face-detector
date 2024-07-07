@@ -6,10 +6,16 @@
   wheel,
   mmcv,
   torch,
+  torchWithCuda,
   json-tricks,
   munkres,
   xtcocotools,
+  cudaSupport ? false,
 }:
+let
+  torch' = if cudaSupport then torchWithCuda else torch;
+  mmcv' = mmcv.override { inherit cudaSupport; };
+in
 buildPythonPackage rec {
   pname = "mmpose";
   version = "0.29.0";
@@ -27,11 +33,11 @@ buildPythonPackage rec {
     wheel
   ];
 
-  buildInputs = [ torch ];
+  buildInputs = [ torch' ];
 
   propagatedBuildInputs = [
     json-tricks
-    mmcv
+    mmcv'
     munkres
     xtcocotools
   ];

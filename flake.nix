@@ -15,24 +15,56 @@
 
       perSystem =
         {
-          config,
-          self',
-          inputs',
-          pkgs,
+          # config,
+          # self',
+          # inputs',
+          # pkgs,
           system,
           ...
         }:
         let
-          ps = pkgs.python3Packages;
-          # python dependencies locked to the specific nixpkgs
-          mmcv-patched = ps.callPackage ./nix/mmcv { };
-          mmdet = (ps.callPackage ./nix/mmdet { mmcv = mmcv-patched; });
-          mmpose = (
-            ps.callPackage ./nix/mmpose {
-              mmcv = mmcv-patched;
-              xtcocotools = ps.callPackage ./nix/xtcocotools { };
-            }
-          );
+          mkPkgsCuda =
+            cudaSupport:
+            import nixpkgs {
+              inherit system;
+              config = {
+                allowUnfreePredicate = nixpkgs.lib.mkIf cudaSupport (
+                  pkg:
+                  builtins.elem (nixpkgs.lib.getName pkg) [
+                    "cuda_cccl"
+                    "cuda_cudart"
+                    "cuda_cupti"
+                    "cuda_nvcc"
+                    "cuda_nvml"
+                    "cuda_nvml_dev"
+                    "cuda_nvrtc"
+                    "cuda_nvtx"
+                    "cuda_profiler_api"
+                    "cudatoolkit-11-cudnn"
+                    "libcublas"
+                    "libcufft"
+                    "libcurand"
+                    "libcusolver"
+                    "libcusparse"
+                    "libnpp"
+                  ]
+                );
+                inherit cudaSupport;
+              };
+            };
+          mkMmPackagesCuda =
+            cudaSupport:
+            let
+              pkgs' = mkPkgsCuda cudaSupport;
+            in
+            rec {
+              mmcv = pkgs'.python3Packages.callPackage ./nix/mmcv { inherit cudaSupport; };
+              mmdet = pkgs'.python3Packages.callPackage ./nix/mmdet { inherit mmcv cudaSupport; };
+              mmpose = pkgs'.python3Packages.callPackage ./nix/mmpose {
+                inherit mmcv cudaSupport;
+                xtcocotools = pkgs'.python3Packages.callPackage ./nix/xtcocotools { };
+              };
+            };
         in
         {
           # Per-system attributes can be defined here. The self' and inputs'
@@ -42,15 +74,9 @@
             let
               mkDevenvWithCuda =
                 cudaSupport:
-                inputs.devenv.lib.mkShell {
+                inputs.devenv.lib.mkShell rec {
                   inherit inputs;
-                  pkgs = import nixpkgs {
-                    inherit system;
-                    config = {
-                      allowUnfree = cudaSupport;
-                      inherit cudaSupport;
-                    };
-                  };
+                  pkgs = mkPkgsCuda cudaSupport;
 
                   modules = [
                     {
@@ -62,15 +88,14 @@
                         MODEL_PATH = toString (pkgs.callPackage ./nix/anime-face-models { });
                       };
 
-                      packages = with pkgs.python3Packages; [
-                        mmcv-patched
-                        mmdet
-                        mmpose
-                        numpy
-                        pillow
-                        flake8
-                        black
-                      ];
+                      packages =
+                        (pkgs.lib.attrValues (mkMmPackagesCuda cudaSupport))
+                        ++ (with pkgs.python3Packages; [
+                          numpy
+                          pillow
+                          flake8
+                          black
+                        ]);
 
                       # python
                       languages.python.enable = true;
@@ -80,33 +105,29 @@
             in
             {
               default = mkDevenvWithCuda false;
-              cuda = mkDevenvWithCuda true;
+              with-cuda = mkDevenvWithCuda true;
             };
 
           packages =
             let
-              pkgsCuda = import nixpkgs {
-                inherit system;
-                config = {
-                  allowUnfree = true;
-                  cudaSupport = true;
-                };
-              };
+              mkAnimeFaceDetectorCuda =
+                cudaSupport:
+                let
+                  pkgs' = mkPkgsCuda cudaSupport;
+                in
+                pkgs'.callPackage ./package.nix (
+                  (mkMmPackagesCuda cudaSupport)
+                  // {
+                    inherit cudaSupport;
+                    anime-face-models = pkgs'.callPackage ./nix/anime-face-models { };
+                  }
+                );
             in
             rec {
-              default = pkgs.callPackage ./package.nix {
-                inherit mmdet mmpose;
-                mmcv = mmcv-patched;
-                anime-face-models = pkgs.callPackage ./nix/anime-face-models { };
-              };
+              default = mkAnimeFaceDetectorCuda false;
               anime-face-detector = default;
               # gpu support via cuda
-              with-cuda = pkgsCuda.callPackage ./package.nix {
-                inherit mmdet mmpose;
-                mmcv = mmcv-patched;
-                anime-face-models = pkgs.callPackage ./nix/anime-face-models { };
-                cudaSupport = true;
-              };
+              with-cuda = mkAnimeFaceDetectorCuda true;
               anime-face-detector-cuda = with-cuda;
             };
         };
