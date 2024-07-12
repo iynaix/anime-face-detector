@@ -1,7 +1,7 @@
 {
   inputs = {
-    # mmcv fails to build because of newer torch version
-    nixpkgs.url = "github:NixOS/nixpkgs/5a623156afb531ba64c69363776bb2b2fe55e46b";
+    # keep nixpkgs pinned to run old versions of mmcv, mmdet, and mmpose
+    nixpkgs.url = "github:NixOS/nixpkgs/5c8fdfb488c68699e49633aae5173adbf4090562";
     systems.url = "github:nix-systems/default";
     devenv.url = "github:cachix/devenv";
     nix2container.url = "github:nlewo/nix2container";
@@ -18,13 +18,15 @@
           # config,
           # self',
           # inputs',
-          # pkgs,
+          pkgs,
           system,
           ...
         }:
         let
-          mkPkgsCuda =
-            cudaSupport:
+          mkPkgs =
+            {
+              cudaSupport ? false,
+            }:
             import nixpkgs {
               inherit system;
               config = {
@@ -52,16 +54,35 @@
                 inherit cudaSupport;
               };
             };
-          mkMmPackagesCuda =
-            cudaSupport:
+          mkTorchPackages =
+            {
+              cudaSupport ? false,
+            }:
             let
-              pkgs' = mkPkgsCuda cudaSupport;
+              pkgs' = mkPkgs { inherit cudaSupport; };
+              torch = if cudaSupport then pkgs'.python3Packages.torchWithCuda else pkgs'.python3Packages.torch;
+              torchvision = pkgs'.python3Packages.torchvision.override { inherit torch; };
+            in
+            {
+              inherit torch torchvision;
+            };
+          mkMmPackages =
+            {
+              cudaSupport ? false,
+            }:
+            let
+              pkgs' = mkPkgs { inherit cudaSupport; };
+              torchPkgs = mkTorchPackages { inherit cudaSupport; };
             in
             rec {
-              mmcv = pkgs'.python3Packages.callPackage ./nix/mmcv { inherit cudaSupport; };
-              mmdet = pkgs'.python3Packages.callPackage ./nix/mmdet { inherit mmcv cudaSupport; };
+              mmcv = pkgs'.python3Packages.callPackage ./nix/mmcv torchPkgs;
+              mmdet = pkgs'.python3Packages.callPackage ./nix/mmdet {
+                inherit mmcv;
+                inherit (torchPkgs) torch;
+              };
               mmpose = pkgs'.python3Packages.callPackage ./nix/mmpose {
-                inherit mmcv cudaSupport;
+                inherit mmcv;
+                inherit (torchPkgs) torch;
                 xtcocotools = pkgs'.python3Packages.callPackage ./nix/xtcocotools { };
               };
             };
@@ -73,10 +94,12 @@
           devShells =
             let
               mkDevenvWithCuda =
-                cudaSupport:
+                {
+                  cudaSupport ? false,
+                }:
                 inputs.devenv.lib.mkShell rec {
                   inherit inputs;
-                  pkgs = mkPkgsCuda cudaSupport;
+                  pkgs = mkPkgs { inherit cudaSupport; };
 
                   modules = [
                     {
@@ -89,7 +112,9 @@
                       };
 
                       packages =
-                        (pkgs.lib.attrValues (mkMmPackagesCuda cudaSupport))
+                        (pkgs.lib.attrValues (mkMmPackages {
+                          inherit cudaSupport;
+                        }))
                         ++ (with pkgs.python3Packages; [
                           numpy
                           pillow
@@ -104,32 +129,42 @@
                 };
             in
             {
-              default = mkDevenvWithCuda false;
-              with-cuda = mkDevenvWithCuda true;
+              default = mkDevenvWithCuda { cudaSupport = false; };
+              with-cuda = mkDevenvWithCuda { cudaSupport = true; };
             };
 
           packages =
             let
-              mkAnimeFaceDetectorCuda =
-                cudaSupport:
+              mkAnimeFaceDetector =
+                {
+                  cudaSupport ? false,
+                }:
                 let
-                  pkgs' = mkPkgsCuda cudaSupport;
+                  pkgs' = mkPkgs { inherit cudaSupport; };
+                  torchPkgs = mkTorchPackages { inherit cudaSupport; };
                 in
                 pkgs'.callPackage ./package.nix (
-                  (mkMmPackagesCuda cudaSupport)
+                  (mkMmPackages { inherit cudaSupport; })
                   // {
-                    inherit cudaSupport;
+                    inherit (torchPkgs) torch;
                     anime-face-models = pkgs'.callPackage ./nix/anime-face-models { };
                   }
                 );
             in
-            rec {
-              default = mkAnimeFaceDetectorCuda false;
-              anime-face-detector = default;
-              # gpu support via cuda
-              with-cuda = mkAnimeFaceDetectorCuda true;
-              anime-face-detector-cuda = with-cuda;
-            };
+            (
+              # output mm* packages along with their cuda versions
+              (mkMmPackages { })
+              // (pkgs.lib.mapAttrs' (name: value: pkgs.lib.nameValuePair "${name}-cuda" value) (mkMmPackages {
+                cudaSupport = true;
+              }))
+              // rec {
+                default = mkAnimeFaceDetector { };
+                anime-face-detector = default;
+                # gpu support via cuda
+                with-cuda = mkAnimeFaceDetector { cudaSupport = true; };
+                anime-face-detector-cuda = with-cuda;
+              }
+            );
         };
     };
 }

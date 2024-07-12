@@ -4,31 +4,32 @@
   fetchFromGitHub,
   mmcv,
   torch,
-  torchWithCuda,
   torchvision,
-  cudaSupport ? false,
+  runCommandNoCC,
 }:
 let
-  torch' = if cudaSupport then torchWithCuda else torch;
-  torchvision' = if cudaSupport then torchvision.override { torch = torchWithCuda; } else torchvision;
+  # blank package that isn't used
+  noop = runCommandNoCC "noop" { } "mkdir $out";
 in
 (mmcv.override {
-  torch = torch';
-  torchvision = torchvision';
+  inherit torch torchvision;
+  mmengine = noop;
+  pybind11 = noop;
 }).overridePythonAttrs
   (o: rec {
-    version = "1.7.0";
+    version = "1.7.2";
+
     src = fetchFromGitHub {
       owner = "open-mmlab";
       repo = "mmcv";
       rev = "v${version}";
-      hash = "sha256-EVu6D6rTeebTKFCMNIbgQpvBS52TKk3vy2ReReJ9VQE=";
+      hash = "sha256-WOfvMQh4b4yqfqvOyfLckx9+FbX5WjuiiK0uv8T0zkQ=";
     };
 
     # logging pollutes stdout
     patches = [ ./remove-logging.patch ];
 
-    propagatedBuildInputs = o.propagatedBuildInputs ++ [ torchvision' ];
+    propagatedBuildInputs = o.propagatedBuildInputs ++ [ torchvision ];
 
     # checks take a long ass time
     doCheck = false;

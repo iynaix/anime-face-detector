@@ -9,13 +9,7 @@
   scipy,
   terminaltables,
   torch,
-  torchWithCuda,
-  cudaSupport ? false,
 }:
-let
-  torch' = if cudaSupport then torchWithCuda else torch;
-  mmcv' = mmcv.override { inherit cudaSupport; };
-in
 buildPythonPackage rec {
   pname = "mmdet";
   version = "2.28.2";
@@ -33,11 +27,11 @@ buildPythonPackage rec {
     wheel
   ];
 
-  buildInputs = [ torch' ];
+  buildInputs = [ torch ];
 
   propagatedBuildInputs = [
-    torch'
-    mmcv'
+    torch
+    mmcv
     scipy
     pycocotools
     terminaltables

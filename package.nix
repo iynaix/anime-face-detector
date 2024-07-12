@@ -1,14 +1,14 @@
 {
   lib,
   python3Packages,
+  torch,
   mmcv,
   mmdet,
   mmpose,
   anime-face-models,
-  cudaSupport ? false,
 }:
 let
-  torch' = if cudaSupport then python3Packages.torchWithCuda else python3Packages.torch;
+  inherit (torch) cudaSupport;
 in
 python3Packages.buildPythonApplication {
   pname = "anime-face-detector";
@@ -25,13 +25,12 @@ python3Packages.buildPythonApplication {
 
   nativeBuildInputs = with python3Packages; [ setuptools ];
 
-  propagatedBuildInputs =
-    (map (pkg: pkg.override { inherit cudaSupport; }) [
-      mmcv
-      mmdet
-      mmpose
-    ])
-    ++ [ torch' ];
+  propagatedBuildInputs = [
+    mmcv
+    mmdet
+    mmpose
+    torch
+  ];
 
   meta = with lib; {
     description = "CLI for hysts/anime-face-detector";

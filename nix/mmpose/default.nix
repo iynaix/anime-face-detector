@@ -6,16 +6,10 @@
   wheel,
   mmcv,
   torch,
-  torchWithCuda,
   json-tricks,
   munkres,
   xtcocotools,
-  cudaSupport ? false,
 }:
-let
-  torch' = if cudaSupport then torchWithCuda else torch;
-  mmcv' = mmcv.override { inherit cudaSupport; };
-in
 buildPythonPackage rec {
   pname = "mmpose";
   version = "0.29.0";
@@ -28,16 +22,20 @@ buildPythonPackage rec {
     hash = "sha256-9x6yW9sqOMQh9cEXraKMbYASRN4ZD80O3M6Z04hiSEQ=";
   };
 
+  postPatch = ''
+    substituteInPlace mmpose/__init__.py --replace '1.7.0' '1.7.2'
+  '';
+
   nativeBuildInputs = [
     setuptools
     wheel
   ];
 
-  buildInputs = [ torch' ];
+  buildInputs = [ torch ];
 
   propagatedBuildInputs = [
     json-tricks
-    mmcv'
+    mmcv
     munkres
     xtcocotools
   ];
