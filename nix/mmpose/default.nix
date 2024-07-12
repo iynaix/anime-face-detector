@@ -7,14 +7,22 @@
   mmcv,
   torch,
   torchWithCuda,
+  torchWithRocm,
   json-tricks,
   munkres,
   xtcocotools,
   cudaSupport ? false,
+  rocmSupport ? false,
 }:
 let
-  torch' = if cudaSupport then torchWithCuda else torch;
-  mmcv' = mmcv.override { inherit cudaSupport; };
+  torch' =
+    if cudaSupport then
+      torchWithCuda
+    else if rocmSupport then
+      torchWithRocm
+    else
+      torch;
+  mmcv' = mmcv.override { inherit cudaSupport rocmSupport; };
 in
 buildPythonPackage rec {
   pname = "mmpose";

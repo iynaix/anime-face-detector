@@ -12,6 +12,7 @@ import anime_face_detector  # noqa: E402
 
 
 CUDA_SUPPORT = os.environ.get("CUDA_SUPPORT")
+ROCM_SUPPORT = os.environ.get("ROCM_SUPPORT")
 
 
 class Face(TypedDict):
@@ -90,7 +91,7 @@ def main():
         metavar="IMAGES",
         help="List of images to process",
     )
-    if CUDA_SUPPORT:
+    if CUDA_SUPPORT or ROCM_SUPPORT:
         parser.add_argument(
             "--device",
             type=str,
@@ -103,7 +104,7 @@ def main():
     detector_kwargs = {
         "face_score_threshold": args.face_score_threshold,
         "landmark_score_threshold": args.landmark_score_threshold,
-        "device": args.device if CUDA_SUPPORT else "cpu",
+        "device": args.device if CUDA_SUPPORT or ROCM_SUPPORT else "cpu",
     }
     for img in args.images:
         faces = {}

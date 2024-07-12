@@ -23,8 +23,11 @@
           ...
         }:
         let
-          mkPkgsCuda =
-            cudaSupport:
+          mkPkgsGpu =
+            {
+              cudaSupport ? false,
+              rocmSupport ? false,
+            }:
             import nixpkgs {
               inherit system;
               config = {
@@ -49,19 +52,22 @@
                     "libnpp"
                   ]
                 );
-                inherit cudaSupport;
+                inherit cudaSupport rocmSupport;
               };
             };
-          mkMmPackagesCuda =
-            cudaSupport:
+          mkMmPackagesGpu =
+            {
+              cudaSupport ? false,
+              rocmSupport ? false,
+            }:
             let
-              pkgs' = mkPkgsCuda cudaSupport;
+              pkgs' = mkPkgsGpu { inherit cudaSupport rocmSupport; };
             in
             rec {
-              mmcv = pkgs'.python3Packages.callPackage ./nix/mmcv { inherit cudaSupport; };
-              mmdet = pkgs'.python3Packages.callPackage ./nix/mmdet { inherit mmcv cudaSupport; };
+              mmcv = pkgs'.python3Packages.callPackage ./nix/mmcv { inherit cudaSupport rocmSupport; };
+              mmdet = pkgs'.python3Packages.callPackage ./nix/mmdet { inherit mmcv cudaSupport rocmSupport; };
               mmpose = pkgs'.python3Packages.callPackage ./nix/mmpose {
-                inherit mmcv cudaSupport;
+                inherit mmcv cudaSupport rocmSupport;
                 xtcocotools = pkgs'.python3Packages.callPackage ./nix/xtcocotools { };
               };
             };
@@ -72,11 +78,14 @@
           # system.
           devShells =
             let
-              mkDevenvWithCuda =
-                cudaSupport:
+              mkDevenvWithGpu =
+                {
+                  cudaSupport ? false,
+                  rocmSupport ? false,
+                }:
                 inputs.devenv.lib.mkShell rec {
                   inherit inputs;
-                  pkgs = mkPkgsCuda cudaSupport;
+                  pkgs = mkPkgsGpu { inherit cudaSupport rocmSupport; };
 
                   modules = [
                     {
@@ -85,11 +94,14 @@
 
                       env = {
                         CUDA_SUPPORT = toString cudaSupport;
+                        ROCM_SUPPORT = toString rocmSupport;
                         MODEL_PATH = toString (pkgs.callPackage ./nix/anime-face-models { });
                       };
 
                       packages =
-                        (pkgs.lib.attrValues (mkMmPackagesCuda cudaSupport))
+                        (pkgs.lib.attrValues (mkMmPackagesGpu {
+                          inherit cudaSupport rocmSupport;
+                        }))
                         ++ (with pkgs.python3Packages; [
                           numpy
                           pillow
@@ -104,31 +116,38 @@
                 };
             in
             {
-              default = mkDevenvWithCuda false;
-              with-cuda = mkDevenvWithCuda true;
+              default = mkDevenvWithGpu { };
+              with-cuda = mkDevenvWithGpu { cudaSupport = true; };
+              with-rocm = mkDevenvWithGpu { rocmSupport = true; };
             };
 
           packages =
             let
-              mkAnimeFaceDetectorCuda =
-                cudaSupport:
+              mkAnimeFaceDetectorGpu =
+                {
+                  cudaSupport ? false,
+                  rocmSupport ? false,
+                }:
                 let
-                  pkgs' = mkPkgsCuda cudaSupport;
+                  pkgs' = mkPkgsGpu { inherit cudaSupport rocmSupport; };
                 in
                 pkgs'.callPackage ./package.nix (
-                  (mkMmPackagesCuda cudaSupport)
+                  (mkMmPackagesGpu { inherit cudaSupport rocmSupport; })
                   // {
-                    inherit cudaSupport;
+                    inherit cudaSupport rocmSupport;
                     anime-face-models = pkgs'.callPackage ./nix/anime-face-models { };
                   }
                 );
             in
             rec {
-              default = mkAnimeFaceDetectorCuda false;
+              default = mkAnimeFaceDetectorGpu { };
               anime-face-detector = default;
               # gpu support via cuda
-              with-cuda = mkAnimeFaceDetectorCuda true;
+              with-cuda = mkAnimeFaceDetectorGpu { cudaSupport = true; };
               anime-face-detector-cuda = with-cuda;
+              # gpu support via rocm
+              with-rocm = mkAnimeFaceDetectorGpu { rocmSupport = true; };
+              anime-face-detector-rocm = with-rocm;
             };
         };
     };

@@ -5,12 +5,20 @@
   mmcv,
   torch,
   torchWithCuda,
+  torchWithRocm,
   torchvision,
   cudaSupport ? false,
+  rocmSupport ? false,
 }:
 let
-  torch' = if cudaSupport then torchWithCuda else torch;
-  torchvision' = if cudaSupport then torchvision.override { torch = torchWithCuda; } else torchvision;
+  torch' =
+    if cudaSupport then
+      torchWithCuda
+    else if rocmSupport then
+      torchWithRocm
+    else
+      torch;
+  torchvision' = torchvision.override { torch = torch'; };
 in
 (mmcv.override {
   torch = torch';

@@ -6,9 +6,16 @@
   mmpose,
   anime-face-models,
   cudaSupport ? false,
+  rocmSupport ? false,
 }:
 let
-  torch' = if cudaSupport then python3Packages.torchWithCuda else python3Packages.torch;
+  torch' =
+    if cudaSupport then
+      python3Packages.torchWithCuda
+    else if rocmSupport then
+      python3Packages.torchWithRocm
+    else
+      python3Packages.torch;
 in
 python3Packages.buildPythonApplication {
   pname = "anime-face-detector";
@@ -21,12 +28,14 @@ python3Packages.buildPythonApplication {
       --replace 'os.environ.get("MODEL_PATH")' '"${anime-face-models}"'
     substituteInPlace cli.py \
       --replace 'os.environ.get("CUDA_SUPPORT")' '"${toString cudaSupport}"'
+    substituteInPlace cli.py \
+      --replace 'os.environ.get("ROCM_SUPPORT")' '"${toString rocmSupport}"'
   '';
 
   nativeBuildInputs = with python3Packages; [ setuptools ];
 
   propagatedBuildInputs =
-    (map (pkg: pkg.override { inherit cudaSupport; }) [
+    (map (pkg: pkg.override { inherit cudaSupport rocmSupport; }) [
       mmcv
       mmdet
       mmpose
