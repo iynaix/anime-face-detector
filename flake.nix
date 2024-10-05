@@ -109,7 +109,7 @@
                       env = {
                         CUDA_SUPPORT = toString cudaSupport;
                         MODEL_PATH = toString (pkgs.callPackage ./nix/anime-face-models { });
-                      };
+                      } // pkgs.lib.optionalAttrs cudaSupport { CUDA_VISIBLE_DEVICES = "0"; };
 
                       packages =
                         (pkgs.lib.attrValues (mkMmPackages {
