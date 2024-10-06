@@ -2,6 +2,7 @@
   inputs = {
     # keep nixpkgs pinned to run old versions of mmcv, mmdet, and mmpose
     nixpkgs.url = "github:NixOS/nixpkgs/5c8fdfb488c68699e49633aae5173adbf4090562";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     systems.url = "github:nix-systems/default";
     devenv.url = "github:cachix/devenv";
     nix2container.url = "github:nlewo/nix2container";
@@ -97,35 +98,39 @@
                 {
                   cudaSupport ? false,
                 }:
-                inputs.devenv.lib.mkShell rec {
+                inputs.devenv.lib.mkShell {
                   inherit inputs;
-                  pkgs = mkPkgs { inherit cudaSupport; };
+                  pkgs = import inputs.nixpkgs-unstable { inherit system; };
 
-                  modules = [
-                    {
-                      # https://devenv.sh/reference/options/
-                      dotenv.disableHint = true;
+                  modules =
+                    let
+                      pkgs = mkPkgs { inherit cudaSupport; };
+                    in
+                    [
+                      {
+                        # https://devenv.sh/reference/options/
+                        dotenv.disableHint = true;
 
-                      env = {
-                        CUDA_SUPPORT = toString cudaSupport;
-                        MODEL_PATH = toString (pkgs.callPackage ./nix/anime-face-models { });
-                      } // pkgs.lib.optionalAttrs cudaSupport { CUDA_VISIBLE_DEVICES = "0"; };
+                        env = {
+                          CUDA_SUPPORT = toString cudaSupport;
+                          MODEL_PATH = toString (pkgs.callPackage ./nix/anime-face-models { });
+                        } // pkgs.lib.optionalAttrs cudaSupport { CUDA_VISIBLE_DEVICES = "0"; };
 
-                      packages =
-                        (pkgs.lib.attrValues (mkMmPackages {
-                          inherit cudaSupport;
-                        }))
-                        ++ (with pkgs.python3Packages; [
-                          numpy
-                          pillow
-                          flake8
-                          black
-                        ]);
+                        packages =
+                          (pkgs.lib.attrValues (mkMmPackages {
+                            inherit cudaSupport;
+                          }))
+                          ++ (with pkgs.python3Packages; [
+                            numpy
+                            pillow
+                            flake8
+                            black
+                          ]);
 
-                      # python
-                      languages.python.enable = true;
-                    }
-                  ];
+                        # python
+                        languages.python.enable = true;
+                      }
+                    ];
                 };
             in
             {
