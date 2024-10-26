@@ -1,7 +1,7 @@
 {
   inputs = {
     # keep nixpkgs pinned to run old versions of mmcv, mmdet, and mmpose
-    nixpkgs.url = "github:NixOS/nixpkgs/5c8fdfb488c68699e49633aae5173adbf4090562";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     systems.url = "github:nix-systems/default";
     devenv.url = "github:cachix/devenv";
