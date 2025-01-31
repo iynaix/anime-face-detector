@@ -12,17 +12,10 @@
     inputs@{ flake-parts, nixpkgs, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [ inputs.devenv.flakeModule ];
-      systems = nixpkgs.lib.systems.flakeExposed;
+      systems = import inputs.systems;
 
       perSystem =
-        {
-          # config,
-          # self',
-          # inputs',
-          pkgs,
-          system,
-          ...
-        }:
+        { pkgs, system, ... }:
         let
           mkPkgs =
             {
@@ -172,4 +165,11 @@
             );
         };
     };
+
+  nixConfig = {
+    extra-substituters = [ "https://anime-face-detector.cachix.org" ];
+    extra-trusted-public-keys = [
+      "anime-face-detector.cachix.org-1:9Lk0AdIpodsqUfjd8KePju5IDrMEdwZhGHLVAj/Pu5M="
+    ];
+  };
 }
