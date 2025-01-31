@@ -18,6 +18,16 @@ Add the following input to your `flake.nix`
   inputs.anime-face-detector.url = "github:iynaix/anime-face-detector";
 }
 ```
+A [anime-face-detector cachix](https://anime-face-detector.cachix.org) is also available, providing prebuilt binaries. To use it, add the following to your configuration:
+```nix
+{
+  nix.settings = {
+    substituters = ["https://anime-face-detector.cachix.org"];
+    trusted-public-keys = ["anime-face-detector.cachix.org-1:9Lk0AdIpodsqUfjd8KePju5IDrMEdwZhGHLVAj/Pu5M="];
+  };
+}
+```
+
 Then, include it in your `environment.systemPackages` or `home.packages` by referencing the input:
 
 ```
@@ -26,7 +36,7 @@ inputs.anime-face-detector.packages.<system>.default
 
 or with cuda support:
 ```
-inputs.anime-face-detector.packages.<system>.with-cuda
+inputs.anime-face-detector.packages.<system>.anime-face-detector-cuda
 ```
 
 Alternatively, it can also be run directly:
@@ -37,10 +47,11 @@ nix run github:iynaix/anime-face-detector -- /path/to/image
 
 or with cuda support:
 ```
-nix run github:iynaix/anime-face-detector#with-cuda -- /path/to/image
+nix run github:iynaix/anime-face-detector#anime-face-detector-cuda -- /path/to/image
 ```
 
-#### NOTE: cuda support might take a while to build, please be patient. :)
+[>!NOTE]
+> cuda support might take a while to build, please be patient. :)
 
 ## Usage
 

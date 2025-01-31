@@ -1,15 +1,15 @@
 {
   inputs = {
     # keep nixpkgs pinned to run old versions of mmcv, mmdet, and mmpose
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
-    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs-23_11.url = "github:NixOS/nixpkgs/nixos-23.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     systems.url = "github:nix-systems/default";
     devenv.url = "github:cachix/devenv";
     nix2container.url = "github:nlewo/nix2container";
   };
 
   outputs =
-    inputs@{ flake-parts, nixpkgs, ... }:
+    inputs@{ flake-parts, nixpkgs-23_11, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       imports = [ inputs.devenv.flakeModule ];
       systems = import inputs.systems;
@@ -21,12 +21,12 @@
             {
               cudaSupport ? false,
             }:
-            import nixpkgs {
+            import nixpkgs-23_11 {
               inherit system;
               config = {
-                allowUnfreePredicate = nixpkgs.lib.mkIf cudaSupport (
+                allowUnfreePredicate = nixpkgs-23_11.lib.mkIf cudaSupport (
                   pkg:
-                  builtins.elem (nixpkgs.lib.getName pkg) [
+                  builtins.elem (nixpkgs-23_11.lib.getName pkg) [
                     "cuda_cccl"
                     "cuda_cudart"
                     "cuda_cupti"
@@ -93,7 +93,7 @@
                 }:
                 inputs.devenv.lib.mkShell {
                   inherit inputs;
-                  pkgs = import inputs.nixpkgs-unstable { inherit system; };
+                  pkgs = import inputs.nixpkgs { inherit system; };
 
                   modules =
                     let
