@@ -165,11 +165,4 @@
             );
         };
     };
-
-  nixConfig = {
-    extra-substituters = [ "https://anime-face-detector.cachix.org" ];
-    extra-trusted-public-keys = [
-      "anime-face-detector.cachix.org-1:9Lk0AdIpodsqUfjd8KePju5IDrMEdwZhGHLVAj/Pu5M="
-    ];
-  };
 }

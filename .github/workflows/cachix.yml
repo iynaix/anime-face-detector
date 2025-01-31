@@ -8,7 +8,8 @@ jobs:
       matrix:
         package:
           - anime-face-detector
-          - anime-face-detector-cuda
+          # building with cuda support takes forever
+          # - anime-face-detector-cuda
 
     runs-on: ubuntu-latest
     steps:
