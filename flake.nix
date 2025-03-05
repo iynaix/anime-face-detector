@@ -1,17 +1,14 @@
 {
   inputs = {
     # keep nixpkgs pinned to run old versions of mmcv, mmdet, and mmpose
-    nixpkgs-23_11.url = "github:NixOS/nixpkgs/nixos-23.11";
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
     systems.url = "github:nix-systems/default";
-    devenv.url = "github:cachix/devenv";
     nix2container.url = "github:nlewo/nix2container";
   };
 
   outputs =
-    inputs@{ flake-parts, nixpkgs-23_11, ... }:
+    inputs@{ flake-parts, nixpkgs, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
-      imports = [ inputs.devenv.flakeModule ];
       systems = import inputs.systems;
 
       perSystem =
@@ -21,12 +18,12 @@
             {
               cudaSupport ? false,
             }:
-            import nixpkgs-23_11 {
+            import nixpkgs {
               inherit system;
               config = {
-                allowUnfreePredicate = nixpkgs-23_11.lib.mkIf cudaSupport (
+                allowUnfreePredicate = nixpkgs.lib.mkIf cudaSupport (
                   pkg:
-                  builtins.elem (nixpkgs-23_11.lib.getName pkg) [
+                  builtins.elem (nixpkgs.lib.getName pkg) [
                     "cuda_cccl"
                     "cuda_cudart"
                     "cuda_cupti"
@@ -87,48 +84,38 @@
           # system.
           devShells =
             let
-              mkDevenvWithCuda =
+              mkShellWithCuda =
                 {
                   cudaSupport ? false,
                 }:
-                inputs.devenv.lib.mkShell {
-                  inherit inputs;
-                  pkgs = import inputs.nixpkgs { inherit system; };
+                pkgs.mkShell (
+                  let
+                    pkgs = mkPkgs { inherit cudaSupport; };
+                  in
+                  {
+                    shellHook =
+                      ''
+                        export CUDA_SUPPORT=${toString cudaSupport}
+                        export MODEL_PATH=${toString (pkgs.callPackage ./nix/anime-face-models { })}
+                      ''
+                      + pkgs.lib.optionalString cudaSupport "export CUDA_VISIBLE_DEVICES=0";
 
-                  modules =
-                    let
-                      pkgs = mkPkgs { inherit cudaSupport; };
-                    in
-                    [
-                      {
-                        # https://devenv.sh/reference/options/
-                        dotenv.disableHint = true;
-
-                        env = {
-                          CUDA_SUPPORT = toString cudaSupport;
-                          MODEL_PATH = toString (pkgs.callPackage ./nix/anime-face-models { });
-                        } // pkgs.lib.optionalAttrs cudaSupport { CUDA_VISIBLE_DEVICES = "0"; };
-
-                        packages =
-                          (pkgs.lib.attrValues (mkMmPackages {
-                            inherit cudaSupport;
-                          }))
-                          ++ (with pkgs.python3Packages; [
-                            numpy
-                            pillow
-                            flake8
-                            black
-                          ]);
-
-                        # python
-                        languages.python.enable = true;
-                      }
-                    ];
-                };
+                    packages =
+                      (pkgs.lib.attrValues (mkMmPackages {
+                        inherit cudaSupport;
+                      }))
+                      ++ (with pkgs.python3Packages; [
+                        numpy
+                        pillow
+                        flake8
+                        black
+                      ]);
+                  }
+                );
             in
             {
-              default = mkDevenvWithCuda { cudaSupport = false; };
-              with-cuda = mkDevenvWithCuda { cudaSupport = true; };
+              default = mkShellWithCuda { cudaSupport = false; };
+              with-cuda = mkShellWithCuda { cudaSupport = true; };
             };
 
           packages =
