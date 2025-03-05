@@ -17,6 +17,7 @@
           mkPkgs =
             {
               cudaSupport ? false,
+              rocmSupport ? false,
             }:
             import nixpkgs {
               inherit system;
@@ -42,16 +43,23 @@
                     "libnpp"
                   ]
                 );
-                inherit cudaSupport;
+                inherit cudaSupport rocmSupport;
               };
             };
           mkTorchPackages =
             {
               cudaSupport ? false,
+              rocmSupport ? false,
             }:
             let
-              pkgs' = mkPkgs { inherit cudaSupport; };
-              torch = if cudaSupport then pkgs'.python3Packages.torchWithCuda else pkgs'.python3Packages.torch;
+              pkgs' = mkPkgs { inherit cudaSupport rocmSupport; };
+              torch =
+                if cudaSupport then
+                  pkgs'.python3Packages.torchWithCuda
+                else if rocmSupport then
+                  pkgs'.python3Packages.torchWithRocm
+                else
+                  pkgs'.python3Packages.torch;
               torchvision = pkgs'.python3Packages.torchvision.override { inherit torch; };
             in
             {
@@ -60,10 +68,11 @@
           mkMmPackages =
             {
               cudaSupport ? false,
+              rocmSupport ? false,
             }:
             let
-              pkgs' = mkPkgs { inherit cudaSupport; };
-              torchPkgs = mkTorchPackages { inherit cudaSupport; };
+              pkgs' = mkPkgs { inherit cudaSupport rocmSupport; };
+              torchPkgs = mkTorchPackages { inherit cudaSupport rocmSupport; };
             in
             rec {
               mmcv = pkgs'.python3Packages.callPackage ./nix/mmcv torchPkgs;
@@ -87,22 +96,24 @@
               mkShellWithCuda =
                 {
                   cudaSupport ? false,
+                  rocmSupport ? false,
                 }:
                 pkgs.mkShell (
                   let
-                    pkgs = mkPkgs { inherit cudaSupport; };
+                    pkgs = mkPkgs { inherit cudaSupport rocmSupport; };
                   in
                   {
                     shellHook =
                       ''
                         export CUDA_SUPPORT=${toString cudaSupport}
+                        export ROCM_SUPPORT=${toString rocmSupport}
                         export MODEL_PATH=${toString (pkgs.callPackage ./nix/anime-face-models { })}
                       ''
                       + pkgs.lib.optionalString cudaSupport "export CUDA_VISIBLE_DEVICES=0";
 
                     packages =
                       (pkgs.lib.attrValues (mkMmPackages {
-                        inherit cudaSupport;
+                        inherit cudaSupport rocmSupport;
                       }))
                       ++ (with pkgs.python3Packages; [
                         numpy
@@ -116,6 +127,7 @@
             {
               default = mkShellWithCuda { cudaSupport = false; };
               with-cuda = mkShellWithCuda { cudaSupport = true; };
+              with-rcom = mkShellWithCuda { rocmSupport = true; };
             };
 
           packages =
@@ -123,13 +135,14 @@
               mkAnimeFaceDetector =
                 {
                   cudaSupport ? false,
+                  rocmSupport ? false,
                 }:
                 let
-                  pkgs' = mkPkgs { inherit cudaSupport; };
-                  torchPkgs = mkTorchPackages { inherit cudaSupport; };
+                  pkgs' = mkPkgs { inherit cudaSupport rocmSupport; };
+                  torchPkgs = mkTorchPackages { inherit cudaSupport rocmSupport; };
                 in
                 pkgs'.callPackage ./package.nix (
-                  (mkMmPackages { inherit cudaSupport; })
+                  (mkMmPackages { inherit cudaSupport rocmSupport; })
                   // {
                     inherit (torchPkgs) torch;
                     anime-face-models = pkgs'.callPackage ./nix/anime-face-models { };
@@ -142,12 +155,18 @@
               // (pkgs.lib.mapAttrs' (name: value: pkgs.lib.nameValuePair "${name}-cuda" value) (mkMmPackages {
                 cudaSupport = true;
               }))
+              // (pkgs.lib.mapAttrs' (name: value: pkgs.lib.nameValuePair "${name}-rocm" value) (mkMmPackages {
+                rocmSupport = true;
+              }))
               // rec {
                 default = mkAnimeFaceDetector { };
                 anime-face-detector = default;
                 # gpu support via cuda
                 with-cuda = mkAnimeFaceDetector { cudaSupport = true; };
                 anime-face-detector-cuda = with-cuda;
+                # gpu support via rocm
+                with-rocm = mkAnimeFaceDetector { rocmSupport = true; };
+                anime-face-detector-rocm = with-rocm;
               }
             );
         };
