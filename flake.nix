@@ -2,8 +2,8 @@
   inputs = {
     # keep nixpkgs pinned to run old versions of mmcv, mmdet, and mmpose
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
+    flake-parts.url = "github:hercules-ci/flake-parts";
     systems.url = "github:nix-systems/default";
-    nix2container.url = "github:nlewo/nix2container";
   };
 
   outputs =
