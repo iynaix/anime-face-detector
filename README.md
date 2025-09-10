@@ -1,3 +1,8 @@
+<h2 align="center">🚧 This repository has been archived 🚧</h2>
+
+Please see [yolov8-animeface-cli](https://github.com/iynaix/yolov8-animeface-cli) for a more up-to-date version of this project that is easier to build and
+has faster performance.
+
 # anime-face-detector
 
 anime-face-detector is a simple cli interface to [hyst's anime-face-detector](https://github.com/hysts/anime-face-detector)
